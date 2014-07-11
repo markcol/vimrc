@@ -64,6 +64,7 @@ set complete-=i             " do not scan included files for completions
 set nowrap                  " do not wrap long lines
 set sidescroll=5            " scroll long lines 5 characters at atime
 set listchars+=precedes:<,extends:>
+set autochdir
 
 " Get the OS name into 'os' for use during configuration checks
 let os = substitute(system('uname'), "\n", "", "")
@@ -77,25 +78,26 @@ if has('gui_running')
   set guioptions-=T   " no toolbar
 endif
 
-" Execute a commend preserving editor context 
+" Execute a commend preserving editor context
 " (cursor location, jump location, search history, etc.)
 function! Preserve(command)
   " Preparation: save last search, and cursor position.
-  let _s=@/
-  let l = line(".")
-  let c = col(".")
+  let l:win_view = winsaveview()
+  let l:last_search = getreg('/')
+
   " Do the business:
-  execute a:command
+  execute 'keepjumps ' . a:command
+
   " Clean up: restore previous search history, and cursor position
-  let @/=_s
-  call cursor(l, c)
-endfunction 
+  call winrestview(l:win_view)
+  call setreg('/', l:last_search)
+endfunction
 
 " Strip trailing whitepsace from buffer
-nmap _$ :call Preserve("%s/\\s\\+$//e")<CR>
+nmap <silent> _$ :call Preserve("%s/\\s\\+$//e")<CR>
 
 " Reformat entire buffer
-nmap _= :call Preserve("normal gg=G")<CR>
+nmap <silent> _= :call Preserve("normal gg=G")<CR>
 
 " Apply macros with Q. qq to record; q to stop; Q to execute
 noremap Q @q
@@ -124,11 +126,11 @@ noremap <C-k> <C-w>k
 :nnoremap <silent> gw "_yiw:s/\(\%#\w\+\)\(\W\+\)\(\w\+\)/\3\2\1/<CR><c-o><c-l><CR>:set noh<CR>
 
 " Swap the current word with the previous, keeping cursor on current word:
-" (This feels like "pushing" the word to the left.) 
+" (This feels like "pushing" the word to the left.)
 :nnoremap <silent> gl "_yiw?\w\+\_W\+\%#<CR>:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR><c-o><c-l><CR>:set noh<CR>
 
-" Swap the current word with the next, keeping cursor on current word: 
-" (This feels like "pushing" the word to the right.) 
+" Swap the current word with the next, keeping cursor on current word:
+" (This feels like "pushing" the word to the right.)
 :nnoremap <silent> gr "_yiw:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR><c-o>/\w\+\_W\+<CR><c-l><CR>:set noh<CR>
 
 "
@@ -161,6 +163,9 @@ endfunction
 
 augroup filetypes
   au!
+  au FileType markdown setlocal softtabstop=4 tabstop=4 shiftwidth=4 noexpandtab
+  au FileType make setlocal sts=4 ts=4 sw=4 noet ai com=n: fo=tcroqn2
+
   au BufRead,BufNewFile *.go call EnterGoFile()
   au BufRead,Bufnew $MYVIMRC,$MYGVIMRC setlocal number
   au BufWritePost $MYVIMRC nested source $MYVIMRC
@@ -168,6 +173,6 @@ augroup filetypes
 augroup end
 
 " Source a local configuration if it exists
-if filereadable('~/.vimrc-local')
-  source expand("~/.vimrc-local")
+if filereadable(glob("~/.vimrc-local"))
+  source ~/.vimrc-local
 endif
