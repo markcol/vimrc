@@ -13,6 +13,9 @@ endif
 call neobundle#begin(expand('~/.vim/bundle'))
 NeoBundleFetch 'Shougo/neobundle.vim'
 
+" Get the OS name into 'os' for use during configuration checks
+let os = substitute(system('uname'), "\n", "", "")
+
 " My Bundles:
 NeoBundle 'Shougo/neosnippet.vim'
 NeoBundle 'Shougo/vimproc.vim', {
@@ -30,6 +33,10 @@ NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'w0ng/vim-hybrid'
 NeoBundle 'bling/vim-airline'
 NeoBundle 'fatih/vim-go'
+if os == 'Darwin'
+  " Dash only works on MacOs
+  NeoBundle 'rizzatti/dash.vim'
+endif
 
 call neobundle#end()
 NeoBundleCheck
@@ -39,6 +46,7 @@ syntax on
 
 let mapleader=","           " use , rather than \
 let g:sh_noisk=1            " avoid accidental changes to keywords
+let g:netrw_liststyle=3     " use NERDTree listing style in netrw
 
 set smartindent             " enable smartindenting
 set shiftwidth=2            " 2-character indents by default
@@ -56,7 +64,7 @@ set scrolloff=5             " keep 5 lines of context on screen
 set modeline                " Look for modelines in files
 set modelines=5             " Look for modelines in first/last 5 lines
 set numberwidth=5           " enough for 1000s of lines without change
-set shortmess+=aT           " get rid of most "Hit enter to continue" messages
+set shortmess+=aT           " get rid of some "Hit enter to continue" messages
 set nrformats="hex"         " leading zeros do not mean octal
 set wildmode=longest,list   " use tab completion for selecting files
 set nojoinspaces            " insert only on space when joinging lines
@@ -65,19 +73,17 @@ set nowrap                  " do not wrap long lines
 set sidescroll=5            " scroll long lines 5 characters at atime
 set listchars+=precedes:<,extends:>
 
-" Get the OS name into 'os' for use during configuration checks
-let os = substitute(system('uname'), "\n", "", "")
 
 if has('gui_running')
   if os == "Linux"
     set guifont=Source\ Code\ Pro\ for\ Powerline\ Medium\ 11
   else
-    set guifont=Source\ Code\ Pro\ for\ Powerline\ Medium:h13
+    set guifont=Source\ Code\ Pro\ for\ Powerline:h12
   endif
   set guioptions-=T   " no toolbar
 endif
 
-" Execute a commend preserving editor context 
+" Execute a commend preserving editor context
 " (cursor location, jump location, search history, etc.)
 function! Preserve(command)
   " Preparation: save last search, and cursor position.
@@ -89,7 +95,7 @@ function! Preserve(command)
   " Clean up: restore previous search history, and cursor position
   let @/=_s
   call cursor(l, c)
-endfunction 
+endfunction
 
 " Strip trailing whitepsace from buffer
 nmap _$ :call Preserve("%s/\\s\\+$//e")<CR>
@@ -121,15 +127,15 @@ noremap <C-k> <C-w>k
 :nnoremap <silent> gc xph
 
 " Swap the current word with the next, without changing cursor position:
-:nnoremap <silent> gw "_yiw:s/\(\%#\w\+\)\(\W\+\)\(\w\+\)/\3\2\1/<CR><c-o><c-l><CR>:set noh<CR>
+:nnoremap <silent> gw "_yiw:s/\(\%#\w\+\)\(\W\+\)\(\w\+\)/\3\2\1/<CR><c-o><CR>:noh<CR>
 
 " Swap the current word with the previous, keeping cursor on current word:
-" (This feels like "pushing" the word to the left.) 
-:nnoremap <silent> gl "_yiw?\w\+\_W\+\%#<CR>:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR><c-o><c-l><CR>:set noh<CR>
+" (This feels like "pushing" the word to the left.)
+:nnoremap <silent> gl "_yiw?\w\+\_W\+\%#<CR>:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR><c-o>:noh<CR>
 
-" Swap the current word with the next, keeping cursor on current word: 
-" (This feels like "pushing" the word to the right.) 
-:nnoremap <silent> gr "_yiw:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR><c-o>/\w\+\_W\+<CR><c-l><CR>:set noh<CR>
+" Swap the current word with the next, keeping cursor on word current:
+" (This feels like "pushing" the word to the right.)
+:nnoremap <silent> gr "_yiw:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR><c-o>/\w\+\_W\+<CR>:noh<CR>
 
 "
 " Color theme settings
@@ -147,6 +153,21 @@ let g:airline#extensions#tabline#enabled=1
 let g:airline_powerline_fonts=1
 
 "
+" Ag
+"
+if executable('ag')
+  set grepprg=ag\ --nogroup\ --nocolor
+endif
+
+" Grep for word under cursor and show results in quickfix window
+nnoremap K :grep! "\b<C-R><C-W>\b"<CR>:cw<CR>
+
+" grep shortcut 
+command! -nargs=+ -complete=file -bar Ag silent! grep! <args>|cwindow|redraw!
+nnoremap \ :Ag<SPACE>
+
+
+"
 " Language-specific settings
 "
 function! EnterGoFile()
@@ -156,7 +177,8 @@ function! EnterGoFile()
   setlocal number nolist
   " autowrap comments at 80, but not code
   setlocal wrap textwidth=79 formatoptions=caroqnblj
-  setlocal foldmethod=syntax foldnestmax=1 foldlevel=1
+  setlocal foldmethod=indent foldnestmax=1 foldlevel=1
+  nnoremap <silent> <leader>gb :GoBuild<CR>
 endfunction
 
 augroup filetypes
