@@ -26,13 +26,16 @@ NeoBundle 'Shougo/vimproc.vim', {
       \     'unix' : 'make -f make_unix.mak',
       \    },
       \ }
-NeoBundle 'Shougo/neosnippet-snippets'
 NeoBundle 'tpope/vim-sensible'
 NeoBundle 'tpope/vim-surround'
 NeoBundle 'tpope/vim-fugitive'
 NeoBundle 'w0ng/vim-hybrid'
 NeoBundle 'bling/vim-airline'
 NeoBundle 'fatih/vim-go'
+NeoBundle 'vimoutliner/vimoutliner'
+NeoBundle 'SirVer/ultisnips'
+NeoBundle 'honza/vim-snippets'
+NeoBundle 'zhaocai/GoldenView.Vim'
 if os == 'Darwin'
   " Dash only works on MacOs
   NeoBundle 'rizzatti/dash.vim'
@@ -73,7 +76,10 @@ set nowrap                  " do not wrap long lines
 set sidescroll=5            " scroll long lines 5 characters at atime
 set listchars+=precedes:<,extends:>
 set autochdir
-
+set visualbell              " no visual bell flash
+set t_vb=                   " no visual bell flash
+set guicursor+=a:blinkon0   " disasble GUI blinking cursor
+set mouse=a                 " enable mouse
 
 if has('gui_running')
   if os == "Linux"
@@ -155,6 +161,13 @@ let g:airline#extensions#tabline#enabled=1
 let g:airline_powerline_fonts=1
 
 "
+" UltiSnips
+"
+let g:UltiSnipsExpandTrigger="<tab>"
+let g:UltiSnipsJumpForwardTrigger="<tab>"
+let g:UltiSnipsJumpBackwardTrigger="<s-tab>"
+
+"
 " Ag
 "
 if executable('ag')
@@ -164,7 +177,7 @@ endif
 " Grep for word under cursor and show results in quickfix window
 nnoremap K :grep! "\b<C-R><C-W>\b"<CR>:cw<CR>
 
-" grep shortcut 
+" grep shortcut
 command! -nargs=+ -complete=file -bar Ag silent! grep! <args>|cwindow|redraw!
 nnoremap \ :Ag<SPACE>
 
@@ -185,8 +198,11 @@ endfunction
 
 augroup filetypes
   au!
+  au BufRead,BufNewFile *.markdown,*.md set filetype=markdown
+
   au FileType markdown setlocal softtabstop=4 tabstop=4 shiftwidth=4 noexpandtab
   au FileType make setlocal sts=4 ts=4 sw=4 noet ai com=n: fo=tcroqn2
+  au BufEnter *.md exe 'noremap <F5> :!/usr/bin/google-chrome %:p<CR>'
 
   au BufRead,BufNewFile *.go call EnterGoFile()
   au BufRead,Bufnew $MYVIMRC,$MYGVIMRC setlocal number
@@ -195,6 +211,6 @@ augroup filetypes
 augroup end
 
 " Source a local configuration if it exists
-if filereadable(glob("~/.vimrc-local"))
-  source ~/.vimrc-local
+if filereadable($HOME . "/.vimrc-local")
+  source $HOME/.vimrc-local
 endif
